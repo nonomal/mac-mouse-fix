@@ -15,7 +15,12 @@
 #import "Modifiers.h"
 #import "Remap.h"
 #import "Constants.h"
+
+#import "Logging.h"
+/*
+@import Carbon;
 #import "CGSHotKeys.h"
+*/
 #import "SymbolicHotKeys.h"
 #import <Carbon/Carbon.h>
 
@@ -23,7 +28,7 @@
 
 + (void)executeActionArray:(NSArray *)actionArray phase:(MFActionPhase)phase {
     
-    DDLogDebug(@"Executing action array: %@, phase: %@", actionArray, @(phase));
+    DDLogDebug("Executing action array: %@, phase: %@", actionArray, @(phase));
     
     if (phase == kMFActionPhaseEnd) {
         return; /// TODO: Actually implement actions with different phases
@@ -112,7 +117,7 @@
                     /// Define the `bfmethods`
                     
                     #define bfmethod(bfmethod_label) \
-                        goto endof_bfmethods; bfmethod_label: {}; DDLogDebug(@"Actions.m: NavigationSwipe: Posting " #bfmethod_label);
+                        goto endof_bfmethods; bfmethod_label: {}; DDLogDebug("Actions.m: NavigationSwipe: Posting " #bfmethod_label);
                     {
                         bfmethod(bfmethod_mouseButton) {
                             if (isleft)     [ModificationUtility postMouseButtonClicks: 4 nOfClicks: 1];
@@ -178,10 +183,6 @@
     }
 }
 
-+ (void)__SWIFT_UNBRIDGED_executeActionArray:(id)actionArray phase:(MFActionPhase)phase {
-    [self executeActionArray:actionArray phase:phase];
-}
-
 #pragma mark - System defined events
 
 static void postSystemDefinedEvent(MFSystemDefinedEventType type, NSEventModifierFlags modifierFlags) {
@@ -217,7 +218,7 @@ static void postSystemDefinedEvent(MFSystemDefinedEventType type, NSEventModifie
 
 static void postKeyboardShortcut(CGKeyCode keyCode, CGSModifierFlags modifierFlags) {
     
-    DDLogDebug(@"postKeyboardShortcut: Posting shortcut with %@", vardesc(@(keyCode), @(modifierFlags)));
+    DDLogDebug("postKeyboardShortcut: Posting shortcut with %@", vardesc(keyCode, modifierFlags));
     
     CGEventTapLocation tapLoc = kCGSessionEventTap;
 

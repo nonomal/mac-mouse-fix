@@ -7,7 +7,9 @@
 // --------------------------------------------------------------------------
 //
 
-import CocoaLumberjackSwift
+///
+/// Meta: [Apr 9 2025] While resolving conflict from merging master into feature-strings-catalog branch, it looks like at some point this file was renamed from `Shared/License/LicenseConfig.swift` to `Shared/License/Retrieve/GetLicenseConfig.swift` but git doesn't understand it's the same file.
+///
 
 @MainActor
 @objc class GetLicenseConfig : NSObject {
@@ -108,7 +110,7 @@ import CocoaLumberjackSwift
         let request = URLRequest(url: licenseConfigURL, cachePolicy: cachePolicy, timeoutInterval: timeout)
         let (requestResult, requestError) = await MFCatch { try await URLSession.shared.data(for: request) }
         guard let requestResult = requestResult else {
-            DDLogError("GetLicenseConfig: Failed to get MFLicenseConfig from server. Request error: \(requestError ?? "<nil>")")
+            DDLogError("GetLicenseConfig: Failed to get MFLicenseConfig from server. Request error: \(requestError.map { String(describing: $0) } ?? "<nil>" )")
             return nil
         }
         let (serverData, urlResponse) = requestResult
@@ -116,7 +118,7 @@ import CocoaLumberjackSwift
         /// Convert jsonData to dict
         let (jsonObject, serializationError) = MFCatch { try JSONSerialization.jsonObject(with: serverData, options: []) }
         guard let dict = jsonObject as? NSDictionary else { /// Sidenote: We used to cast to `NSMutableDictionary` here but that fails unless using the`.mutableContainers` option for `JSONSerialization`. Don't understand Swift casting.
-            DDLogError("GetLicenseConfig: Failed to get MFLicenseConfig from server. Serialization error: \(serializationError ?? "<nil>"). jsonObject: \(jsonObject ?? "<nil>"). URLResponse: \(urlResponse)")
+            DDLogError("GetLicenseConfig: Failed to get MFLicenseConfig from server. Serialization error: \(serializationError.map { String(describing: $0) } ?? "<nil>"). jsonObject: \(jsonObject ?? "<nil>"). URLResponse: \(urlResponse)")
             return nil
         }
         

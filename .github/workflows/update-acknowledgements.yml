@@ -18,7 +18,7 @@ jobs:
   regenerate-acknowledgements:
     
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: macos-latest # Need macOS since _buildmd.py uses plutil [Nov 2025]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -27,6 +27,8 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: master # Checkout the branch with this name
+        submodules: 'true'
+        token: ${{ secrets.ACTIONS_PAT }} # See https://stackoverflow.com/a/65091631
     
     - name: Use cache
       uses: actions/cache@v4
@@ -39,17 +41,19 @@ jobs:
     - name: Setup python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.14'
         cache: 'pip' # caching pip dependencies. This is from the official example. Not totally sure what we're doing here.
-        cache-dependency-path: './Markdown/Code/python_requirements.txt'
-
+        cache-dependency-path: './mac-mouse-fix-scripts/scripts/_buildmd/python_requirements.txt'
+    
     - name: Install python dependencies
       run: |
-        python -m pip install -r ./Markdown/Code/python_requirements.txt
+        python -m pip install -r ./mac-mouse-fix-scripts/scripts/_buildmd/python_requirements.txt
     
     - name: Run script
       run: |
-        python ./Markdown/Code/markdown_generator.py --document acknowledgements --api_key ${{ secrets.GUMROAD_API_KEY }}
+        python ./mac-mouse-fix-scripts/scripts/_buildmd/_buildmd.py --document Acknowledgements.md --api-key ${{ secrets.GUMROAD_API_KEY }}
+      env:
+        PYTHONPATH: mac-mouse-fix-scripts/shared/
     
     - name: Commit and push changes
       run: |

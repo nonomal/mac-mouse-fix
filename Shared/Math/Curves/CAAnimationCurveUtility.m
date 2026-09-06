@@ -9,7 +9,7 @@
 
 #import "CAAnimationCurveUtility.h"
 #import <objc/message.h>
-#import "SharedUtility.h"
+#import "Logging.h"
 
 @implementation CAAnimationCurveUtility
 
@@ -20,7 +20,7 @@ NSArray <NSNumber *> *_Nonnull MFCABasicAnimation_Sample(CABasicAnimation *_Nonn
     SEL sel = NSSelectorFromString(@"_timeFunction:");
     
     if (![base respondsToSelector: sel]) {
-        DDLogError(@"Error: MFCABasicAnimation_Sample: Passed-in CAAnimation (%@) doesn't support _timeFunction:.", base); /// [Aug 2025] Relying on weird private stuff here. I hope this is portable.
+        DDLogError("Error: MFCABasicAnimation_Sample: Passed-in CAAnimation (%@) doesn't support _timeFunction:.", base); /// [Aug 2025] Relying on weird private stuff here. I hope this is portable.
         assert(false);
         return @[];
     }

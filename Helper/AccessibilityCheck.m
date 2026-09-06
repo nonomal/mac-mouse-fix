@@ -22,6 +22,7 @@
 #import "HelperServices.h"
 #import "PointerFreeze.h"
 #import "Mac_Mouse_Fix_Helper-Swift.h"
+#import "LocalizedStringAnnotation.h"
 
 #import "SharedUtility.h"
 
@@ -104,8 +105,8 @@
     [UNIXSignals load_Manual];
     
     /// Set up CocoaLumberjack
-    [SharedUtility setupBasicCocoaLumberjackLogging];
-    DDLogInfo(@"Accessibility Check - Mac Mosue Fix begins logging excessively");
+    [Logging setUpDDLog];
+    DDLogInfo("Accessibility Check - Mac Mosue Fix begins logging excessively");
     
     
     /// Validate asserts working properly
@@ -115,19 +116,18 @@
     /// - I added the NDEBUG flag back to the Clang Preprocessor Macros now. I also added the NDEBUG flag to the Swift Active Compilation Conditions. Not sure what effect that has, but I think the NDEBUG flag is standard for Swift, as well so it should work fine (Not totally sure though)
     
 #if NDEBUG
-    DDLogInfo(@"Accessibility Check - Running a Non-Debug build. Asserts are disabled.");
+    DDLogInfo("Accessibility Check - Running a Non-Debug build. Asserts are disabled.");
     assert(false);
 #endif
     
 #if DEBUG
-    DDLogInfo(@"Accessibility Check - Running a Debug build. Asserts are enabled.");
+    DDLogInfo("Accessibility Check - Running a Debug build. Asserts are enabled.");
 #endif
     
     ///
     /// __Pre-check init__
     ///
     
-    [PrefixSwift initGlobalStuff];
     [MFMessagePort load_Manual];
     
     ///
@@ -137,7 +137,7 @@
     
     if (!isTrusted) {
         
-        DDLogInfo(@"Accessibility Check - Accessibility Access Disabled");
+        DDLogInfo("Accessibility Check - Accessibility Access Disabled");
         
         /// Workaround for macOS bug
         ///     If there's still and old version of the helper in System Settings, the user won't be able to trust the new helper. So we remove the old helper from System Settings and add the new one again.
@@ -173,11 +173,17 @@
         /// Log
         ///
         
-        DDLogInfo(@"Accessibility Check - Helper started with accessibility permissions at: URL %@", Locator.currentExecutableURL);
+        DDLogInfo("Accessibility Check - Helper started with accessibility permissions at: URL %@", Locator.currentExecutableURL);
         
         ///
         /// **Post-check init**
         ///
+
+        /// Annotate localized strings
+        ///     The swizzle should happen before the system loads any of our localized nib files, or localizedStrings are loaded from the NSBundle in another way. Otherwise we miss some strings in the localizationScreenshots.
+        if ([NSProcessInfo.processInfo.arguments containsObject:@"-MF_ANNOTATE_LOCALIZED_STRINGS"]) {
+            [LocalizedStringAnnotation enableAutomaticAnnotation];
+        }
         
         /// Using `load_Manual` instead of normal load, because creating an eventTap crashes the program, if we don't have accessibilty access (I think - I don't really remember)
         /// TODO: Look into using `+ initialize` instead of `+ load`. The way we have things set up there are like a bajillion entry points to the program (one for every `+ load` function) which is kinda sucky. Might be better to have just one entry point to the program and then start everything that needs to be started with `+ start` functions and let `+ initialize` do the rest
@@ -230,9 +236,9 @@
 //        [SecureStorage set:@"hi.im.groot" value:@"what's your name? Hghhhh?"];
 //        NSString *secure = [SecureStorage get:@"hi.im.groot"];
 //
-//        DDLogDebug(@"Value from secure storage: %@", secure);
+//        DDLogDebug("Value from secure storage: %@", secure);
 //
-//        DDLogDebug(@"Entire secure storage: %@", [SecureStorage getAll]);
+//        DDLogDebug("Entire secure storage: %@", [SecureStorage getAll]);
 //
 //        [LicenseConfig getOnComplete:^(LicenseConfig * _Nonnull licenseConfig) {
 //
@@ -247,10 +253,10 @@
         
     //    [Gumroad checkLicense:license email:email completionHandler:^(BOOL isValidKey, NSDictionary<NSString *,id> * _Nullable serverResponse, NSError * _Nullable error, NSURLResponse * _Nullable urlResponse) {
     //
-    //            DDLogDebug(@"License check result - isValidKey: %d, error: %@", isValidKey, error);
+    //            DDLogDebug("License check result - isValidKey: %d, error: %@", isValidKey, error);
     //    }];
 //        [Licensing licensingStateWithCompletionHandler:^(MFLicenseAndTrialState licensing, NSError *error) {
-//            DDLogDebug(@"License check result - state: %d, currentDay: %d, trialDays: %d, error: %@", licensing.state, licensing.daysOfUse, licensing.trialDays, error);
+//            DDLogDebug("License check result - state: %d, currentDay: %d, trialDays: %d, error: %@", licensing.state, licensing.daysOfUse, licensing.trialDays, error);
 //        }];
     }
 }

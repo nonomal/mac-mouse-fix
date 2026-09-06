@@ -22,11 +22,11 @@
 
 #import "DisplayLink.h"
 #import <Cocoa/Cocoa.h>
-#import "WannabePrefixHeader.h"
 #import "NSScreen+Additions.h"
 #import "SharedUtility.h"
 #import "IOUtility.h"
-#import "EventLoggerForBradMacros.h"
+
+#import "Logging.h"
 
 #if IS_HELPER
 #import "HelperUtility.h"
@@ -155,8 +155,10 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
 
 - (void)setUpNewDisplayLinkWithActiveDisplays {
     
-    /// Discussion [Apr 2025] Name should be `setupNew*CV*DisplayLink...`
-    
+    /// Discussion
+    ///     - Should be called `setupNew*CV*DisplayLink...` [Apr 2025] 
+    ///     - MOS doesn't recreate the displaylink every time a new display is connected, so it's probably unnecessary. Why did we do all this elaborate stuff without testing? Should've at least left a comment that we haven't confirmed it to be necessary. [Oct 2025]
+
     /// Validate thread
     {
         /// [Aug 2025] We're calling CVDisplayLinkStart() and CVDisplayLinkStop() from the mainThread, and apparently that fixed some issues, we also had some external doc that suggested mainThread should be used for some things. (See notes where we call CVDisplayLinkStart()/CVDisplayLinkStop()). I also just saw that CVDisplayLink is non-sendable.
@@ -170,14 +172,15 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
         ///     - Other thought: Since this is only called rarely, (and I think always *before* that displayLink is actually used) race-conditions might be rare. But rare issues match the sporadic nature of the `scrolling-stops-intermittently_apr-2025.md` issues, and CVDisplayLinkStart()/CVDisplayLinkStop() did randomly fail when we called them from a non-main-thread according to the notes
         ///         ... but my gut feeling is that it's not about race-conditions.
         
-        DDLogDebug(@"DisplayLink.m: (%@) Running -[setUpNewDisplayLinkWithActiveDisplays] on thread %@", [self identifier], NSThread.currentThread);
+        DDLogDebug("DisplayLink.m: (%@) Running -[setUpNewDisplayLinkWithActiveDisplays] on thread %@", [self identifier], NSThread.currentThread);
     }
     
+
     /// Delete existing displayLink
     if (_displayLink != NULL) {
         CVReturn ret = CVDisplayLinkStop(_displayLink);
         assert(ret == kCVReturnDisplayLinkNotRunning);
-        DDLogDebug(@"DisplayLink.m: (%@) Deleting existing CVDisplayLink for displayLink. StopCode: %@", [self identifier], MFCVReturn_ToString(ret));
+        DDLogDebug("DisplayLink.m: (%@) Deleting existing CVDisplayLink for displayLink. StopCode: %@", [self identifier], MFCVReturn_ToString(ret));
         CVDisplayLinkRelease(_displayLink);
         _displayLink = NULL;
     }
@@ -199,7 +202,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
             
             bool valid = (ret == kCVReturnSuccess) && (ret2 == kCVReturnSuccess) && (_displayLink != NULL);
             if (valid) {
-                DDLogDebug(@"DisplayLink.m: (%@) Created CVDisplayLink (%@) on try %d", [self identifier], _displayLink, i);
+                DDLogDebug("DisplayLink.m: (%@) Created CVDisplayLink (%@) on try %d", [self identifier], _displayLink, i);
                 return;
             }
             
@@ -207,7 +210,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
             _displayLink = NULL; /// I'm pretty sure CVDisplayLinkCreateWithActiveCGDisplays() always overrides the `_displayLink` to be either NULL or valid. If it sometimes leaves the value untouched, then we'd have to set it to NULL after releasing to prevent use-after-free.
         }
         
-        mfabort(@"DisplayLink.m: (%@) Failed to create CVDisplayLink (%@) after %d tries. Last codes: (%@, %@)", [self identifier], _displayLink, max_tries, MFCVReturn_ToString(ret), MFCVReturn_ToString(ret2));
+        mfabort("DisplayLink.m: (%@) Failed to create CVDisplayLink (%@) after %d tries. Last codes: (%@, %@)", [self identifier], _displayLink, max_tries, MFCVReturn_ToString(ret), MFCVReturn_ToString(ret2));
     }
 }
 
@@ -237,7 +240,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
 
     
     /// Debug
-    DDLogDebug(@"DisplayLink.m: (%@) starting", [self identifier]);
+    DDLogDebug("DisplayLink.m: (%@) starting", [self identifier]);
     
     /// Store callback
     
@@ -263,7 +266,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
             
             failedAttempts += 1;
             if (failedAttempts >= maxAttempts) {
-                DDLogInfo(@"DisplayLink.m: (%@) Failed to start CVDisplayLink after %lld tries. Last error code: %d", [self identifier], failedAttempts, rt);
+                DDLogInfo("DisplayLink.m: (%@) Failed to start CVDisplayLink after %lld tries. Last error code: %d", [self identifier], failedAttempts, rt);
                 break;
             }
         }
@@ -305,7 +308,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
 
 - (void)stop_Unsafe {
     /// Debug
-    DDLogDebug(@"DisplayLink.m: (%@) stopping", [self identifier]);
+    DDLogDebug("DisplayLink.m: (%@) stopping", [self identifier]);
     
     if ([self isRunning_Unsafe]) {
         
@@ -400,7 +403,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
     Boolean result = CVDisplayLinkIsRunning(self->_displayLink);
     
     /// Debug
-    DDLogDebug(@"DisplayLink.m %@ isRunning: %d", [self identifier], result);
+    DDLogDebug("DisplayLink.m %@ isRunning: %d", [self identifier], result);
     
     /// Return
     return result;
@@ -525,7 +528,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
 //            returnCode = [self setDisplay:dsp];
 //        }
 //    } else if (matchingDisplayCount == 0) {
-//        DDLogWarn(@"DisplayLink.m: (%@) There are 0 diplays under the mouse pointer", [self identifier]);
+//        DDLogWarn("DisplayLink.m: (%@) There are 0 diplays under the mouse pointer", [self identifier]);
 //        returnCode = kCVReturnError;
 //    }
 //    
@@ -552,7 +555,7 @@ NSString *MFCGDisplayChangeSummaryFlags_ToString(CGDisplayChangeSummaryFlags fla
     CVReturn ret = CVDisplayLinkSetCurrentCGDisplay(_displayLink, displayID);
     
     /// Log
-    DDLogDebug(@"DisplayLink.m: (%@) set to display %d. Error: %d", [self identifier], displayID, ret);
+    DDLogDebug("DisplayLink.m: (%@) set to display %d. Error: %d", [self identifier], displayID, ret);
     
     if (ret) {
         assert(false);
@@ -593,11 +596,11 @@ void displayReconfigurationCallback(CGDirectDisplayID display, CGDisplayChangeSu
         (flags & kCGDisplayEnabledFlag) ||
         (flags & kCGDisplayDisabledFlag))
     {
-        DDLogInfo(@"DisplayLink.m: (%@) added / removed. Flagging the displayLink as outdated. display: %d, flags: %@", [self identifier], display, MFCGDisplayChangeSummaryFlags_ToString(flags));
+        DDLogInfo("DisplayLink.m: (%@) added / removed. Flagging the displayLink as outdated. display: %d, flags: %@", [self identifier], display, MFCGDisplayChangeSummaryFlags_ToString(flags));
         self->_displayLinkIsOutdated = YES;
     }
     else {
-        DDLogDebug(@"DisplayLink.m: (%@) Ignored display reconfiguration. display: %d, flags: %@", [self identifier], display, MFCGDisplayChangeSummaryFlags_ToString(flags));
+        DDLogDebug("DisplayLink.m: (%@) Ignored display reconfiguration. display: %d, flags: %@", [self identifier], display, MFCGDisplayChangeSummaryFlags_ToString(flags));
     }
     
 }
@@ -618,12 +621,12 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
     
     dispatch_sync(self.dispatchQueue, ^{ /// [Aug 2025] Recovered notes from 3.0.0: Use sync so this is actually executed on the high-priority display-linked thread // Why are we using self.dispatchQueue instead of `self->_displayLinkQueue`? I think self.dispatchQueue might cause some weird timing stuff since objc props are often atomic and stuff..
             
-        DDLogDebug(@"DisplayLink.m: (%@) Callback", [self identifier]);
+        DDLogDebug("DisplayLink.m: (%@) Callback", [self identifier]);
          
         DisplayLinkCallbackTimeInfo timeInfo = parseTimeStamps(inNow, inOutputTime);
          
         if (self->_requestedState == kMFDisplayLinkRequestedStateStopped) {
-            DDLogDebug(@"DisplayLink.m: (%@) callback called after requested stop. Returning", [self identifier]);
+            DDLogDebug("DisplayLink.m: (%@) callback called after requested stop. Returning", [self identifier]);
             return;
         }
         
@@ -673,14 +676,14 @@ DisplayLinkCallbackTimeInfo parseTimeStamps(const CVTimeStamp *inNow, const CVTi
         anchor = CACurrentMediaTime();
     }
     
-    DDLogDebug(@"DisplayLink.m: \nhostDiff: %.1f, %.1f, frameDiff: %.1f, %.1f", (tsNow.hostTS - anchor)*1000, (tsOut.hostTS - anchor)*1000, (tsNow.frameTS - anchor)*1000, (tsOut.frameTS - anchor)*1000);
+    DDLogDebug("DisplayLink.m: \nhostDiff: %.1f, %.1f, frameDiff: %.1f, %.1f", (tsNow.hostTS - anchor)*1000, (tsOut.hostTS - anchor)*1000, (tsNow.frameTS - anchor)*1000, (tsOut.frameTS - anchor)*1000);
     
 //    static CFTimeInterval last = 0;
 //    CFTimeInterval measuredFramePeriod = now - last;
 //    last = now;
-//    DDLogDebug(@"DisplayLink.m: Measured frame period: %f", measuredFramePeriod);
+//    DDLogDebug("DisplayLink.m: Measured frame period: %f", measuredFramePeriod);
     
-//    DDLogDebug(@"DisplayLink.m: \nframePeriod manual %.10f, api: %.10f", (tsOut.frameTS - tsNow.frameTS)/2.0, tsOut.period);
+//    DDLogDebug("DisplayLink.m: \nframePeriod manual %.10f, api: %.10f", (tsOut.frameTS - tsNow.frameTS)/2.0, tsOut.period);
     
     /// Analysis of period
     /// Our analysis shows:
@@ -725,7 +728,7 @@ ParsedCVTimeStamp parseTimeStamp(const CVTimeStamp *ts) {
     
     if (!hostTimeIsValid || isInterlaced || SMPTETimeIsValid || !videoRefreshPeriodIsValid || !timeStampRateScalerIsValid) {
         
-        DDLogWarn(@"DisplayLink.m: \nCVTimeStamp flags are weird - hostTimeIsValid: %d, isInterlaced: %d, SMPTETimeIsValid: %d, videoRefreshPeriodIsValid: %d, timeStampRateScalerIsValid: %d", hostTimeIsValid, isInterlaced, SMPTETimeIsValid, videoRefreshPeriodIsValid, timeStampRateScalerIsValid);
+        DDLogWarn("DisplayLink.m: \nCVTimeStamp flags are weird - hostTimeIsValid: %d, isInterlaced: %d, SMPTETimeIsValid: %d, videoRefreshPeriodIsValid: %d, timeStampRateScalerIsValid: %d", hostTimeIsValid, isInterlaced, SMPTETimeIsValid, videoRefreshPeriodIsValid, timeStampRateScalerIsValid);
     }
     
     /// Extract other data from timestamp

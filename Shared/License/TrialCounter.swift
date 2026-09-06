@@ -26,7 +26,6 @@
 /// - `[x]` Doesn't increment daysOfUse when using Trackpad
 
 import Cocoa
-import CocoaLumberjackSwift
 
 
 @objc class TrialCounter: NSObject { /// Not annotated with @MainActor since we want `handleUse` to be callable from different threads without overhead, and this doesn't have any `async` functions. (See discussion in `License/README.md`)
@@ -157,7 +156,7 @@ import CocoaLumberjackSwift
     @objc func handleUse() {
         
         /// Debug
-        DDLogDebug("TrialCounter.handleUse() called. trialIsActive: \(trialIsActive) | hasBeenUsedToday: \(hasBeenUsedToday) | lastUseDate: \(TrialCounter.lastUseDate ?? "<nil>") | daysOfUse: \(TrialCounter.daysOfUse)")
+        DDLogDebug("TrialCounter.handleUse() called. trialIsActive: \(trialIsActive) | hasBeenUsedToday: \(hasBeenUsedToday) | lastUseDate: \(TrialCounter.lastUseDate.map { String(describing: $0) } ?? "<nil>") | daysOfUse: \(TrialCounter.daysOfUse)")
         
         /// Guard not running helper
         assert(runningHelper())

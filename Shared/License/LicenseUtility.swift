@@ -8,7 +8,6 @@
 //
 
 import Cocoa
-import CocoaLumberjackSwift
 
 func MFCatch<R, E>(_ workload: () throws(E) -> R) -> (R?, E?) {
     
@@ -115,17 +114,16 @@ func MFCatch<R, E>(_ workload: () async throws(E) -> R) async -> (R?, E?) {
         if !trialState.trialIsActive {
             /// Trial expired
             
-            base = NSLocalizedString("trial-counter.expired", comment: "First draft: Free days are over")
+            base = MFLocalizedString("trial-counter.expired", comment: "")
             
         } else {
             /// Trial still active
-                
-            let b = NSLocalizedString("trial-counter.active", comment: "First draft: Free day **%d/%d**")
+            let b = MFLocalizedString("trial-counter.active", comment: "Note: You can use whatever formatting looks natural in your language, such as \"x of y\" instead of \"x/y\".")
             base = String(format: b, daysOfUseUI, trialDays)
         }
         
         /// Apply markdown
-        let result = NSAttributedString(coolMarkdown: base)!
+        let result = MarkdownParser.attributedString(withCoolMarkdown: base, fillOutBase: true)!
         
         /// Return
         return result

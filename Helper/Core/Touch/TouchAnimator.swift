@@ -30,7 +30,6 @@
 /// Also has this cool momentumHint feature which lets us switch between gesture scrolls and momentum scrolls appropriately to allow for scroll bouncing and generally better behaviour.
 
 import Cocoa
-import CocoaLumberjackSwift
 
 class TouchAnimator: TouchAnimatorBase {
 
@@ -103,7 +102,7 @@ class TouchAnimator: TouchAnimatorBase {
             /// Debug
             
             let deltaLeftBefore = self.animationValueLeft_Unsafe;
-            DDLogDebug("\nStarted TouchAnimator with deltaLeftDiff: \(subtractedVectors(self.animationValueLeft_Unsafe, deltaLeftBefore)), oldDeltaLeft: \(deltaLeftBefore), newDeltaLeft: \(self.animationValueLeft_Unsafe)")
+            DDLogDebug("Started TouchAnimator with deltaLeftDiff: \(subtractedVectors(self.animationValueLeft_Unsafe, deltaLeftBefore)), oldDeltaLeft: \(deltaLeftBefore), newDeltaLeft: \(self.animationValueLeft_Unsafe)")
             
         }
     }
@@ -143,7 +142,7 @@ class TouchAnimator: TouchAnimatorBase {
             && !isLastDisplayLinkCallback) {
             
             /// Log
-            DDLogDebug("\nHNGG Skipped TouchAnimator callback due to 0 delta.")
+            DDLogDebug("HNGG Skipped TouchAnimator callback due to 0 delta.")
             
         } else {
         
@@ -163,7 +162,7 @@ class TouchAnimator: TouchAnimatorBase {
             
             /// Debug
             
-            DDLogDebug("\nTouchAnimator callback with delta: \(integerAnimationValueDelta), phase: \(phase), momentumHint: \(momentumHint)")
+            DDLogDebug("TouchAnimator callback with delta: \(integerAnimationValueDelta), phase: \(phase), momentumHint: \(momentumHint)")
             
             /// Update hasProducedDeltas
             /// 

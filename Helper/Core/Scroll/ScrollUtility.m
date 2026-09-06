@@ -13,6 +13,7 @@
 #import "IOHIDEventTypes.h"
 #import "SharedUtility.h"
 #import "ModificationUtility.h"
+#import "Logging.h"
 
 @implementation ScrollUtility
 
@@ -67,10 +68,10 @@ static NSDictionary *_MFScrollPhaseToIOHIDEventPhase;
     CGEventSetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis1, lineHeight);
     CGEventSetDoubleValueField(event, kCGScrollWheelEventFixedPtDeltaAxis1, lineHeight);
     
-    DDLogInfo(@"Normalized scroll event values:");
-    DDLogInfo(@"%lld",CGEventGetIntegerValueField(event, kCGScrollWheelEventDeltaAxis1));
-    DDLogInfo(@"%lld",CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis1));
-    DDLogInfo(@"%f",CGEventGetDoubleValueField(event, kCGScrollWheelEventFixedPtDeltaAxis1));
+    DDLogInfo("Normalized scroll event values:");
+    DDLogInfo("%lld",CGEventGetIntegerValueField(event, kCGScrollWheelEventDeltaAxis1));
+    DDLogInfo("%lld",CGEventGetIntegerValueField(event, kCGScrollWheelEventPointDeltaAxis1));
+    DDLogInfo("%f",CGEventGetDoubleValueField(event, kCGScrollWheelEventFixedPtDeltaAxis1));
     
     return event;
 }
@@ -122,15 +123,15 @@ static NSDictionary *_MFScrollPhaseToIOHIDEventPhase;
     long long fixedPt2 = CGEventGetIntegerValueField(event, kCGScrollWheelEventFixedPtDeltaAxis2);
 
     
-    DDLogInfo(@"Axis 1:");
-    DDLogInfo(@"  Line: %lld", line1);
-    DDLogInfo(@"  Point: %lld", point1);
-    DDLogInfo(@"  FixedPt: %lld", fixedPt1);
+    DDLogInfo("Axis 1:");
+    DDLogInfo("  Line: %lld", line1);
+    DDLogInfo("  Point: %lld", point1);
+    DDLogInfo("  FixedPt: %lld", fixedPt1);
     
-    DDLogInfo(@"Axis 2:");
-    DDLogInfo(@"  Line: %lld", line2);
-    DDLogInfo(@"  Point: %lld", point2);
-    DDLogInfo(@"  FixedPt: %lld", fixedPt2);
+    DDLogInfo("Axis 2:");
+    DDLogInfo("  Line: %lld", line2);
+    DDLogInfo("  Point: %lld", point2);
+    DDLogInfo("  FixedPt: %lld", fixedPt2);
     
 }
 
@@ -146,7 +147,7 @@ static NSDictionary *_MFScrollPhaseToIOHIDEventPhase;
     if (n == 0 || m == 0) {
         return true;
     }
-    if ([SharedUtility signOf:n] == [SharedUtility signOf:m]) {
+    if (mfsign(n) == mfsign(m)) {
         return true;
     }
     return false;
@@ -171,7 +172,7 @@ static NSDictionary *_MFScrollPhaseToIOHIDEventPhase;
     
     /// Axis direction
     
-    MFScrollInversion inputAxisDirection = [SharedUtility signOf:inputDelta];
+    MFScrollInversion inputAxisDirection = mfsign(inputDelta);
     MFScrollInversion effectiveAxisDirection = inputAxisDirection * invertSetting;
     
     /// Direction

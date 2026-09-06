@@ -10,6 +10,7 @@
 #import "ButtonModifiers.h"
 #import "SharedUtility.h"
 #import "Modifiers.h"
+#import "Logging.h"
 
 @implementation ButtonModifiers {
     
@@ -54,7 +55,7 @@
         /// Debug
         if (runningPreRelease()) {
             NSString *description = stateDescription(_state);
-            DDLogDebug(@"buttonModifiers - update - toState: %@", description);
+            DDLogDebug("buttonModifiers - update - toState: %@", description);
         }
         
         /// Notify
@@ -81,7 +82,7 @@
         /// Debug
         if (runningPreRelease()) {
             NSString *description = stateDescription(_state);
-            DDLogDebug(@"buttonModifiers - update - toState: %@", description);
+            DDLogDebug("buttonModifiers - update - toState: %@", description);
         }
         
         /// Notify

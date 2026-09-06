@@ -9,7 +9,7 @@
 
 #import "MFSegmentedControl.h"
 #import <Carbon/Carbon.h>
-#import "WannabePrefixHeader.h"
+#import "Logging.h"
 
 @interface MFSegmentedControl ()
 @property (nonatomic) IBInspectable NSNumber *keyEquivKC;
@@ -24,7 +24,7 @@
 
 - (BOOL)performKeyEquivalent:(NSEvent *)key {
     
-    DDLogInfo(@"%d %@", key.keyCode, _keyEquivKC);
+    DDLogInfo("%d %@", key.keyCode, _keyEquivKC);
     
     if (key.keyCode == _keyEquivKC.intValue) {
         [self selectSegmentWithTag:-1];

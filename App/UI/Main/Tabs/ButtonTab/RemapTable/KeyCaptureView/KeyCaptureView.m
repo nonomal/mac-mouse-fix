@@ -13,8 +13,8 @@
 #import <Carbon/Carbon.h>
 #import "MFMessagePort.h"
 #import "NSView+Additions.h"
-#import "WannabePrefixHeader.h"
 #import "Mac_Mouse_Fix-Swift.h"
+#import "Localization.h"
 
 @interface KeyCaptureView ()
 
@@ -48,7 +48,7 @@
 - (void)setupWithCaptureHandler:(CaptureHandler)captureHandler
                    cancelHandler:(CancelHandler)cancelHandler {
     
-    DDLogDebug(@"Setting up keystroke capture view");
+    DDLogDebug("Setting up keystroke capture view");
     
     self.delegate = self;
     _captureHandler = captureHandler;
@@ -72,7 +72,7 @@
 
 - (void)drawEmptyAppearance { // Not really drawing in the NSFillRect sense, probably a bad name
     
-    self.coolString = NSLocalizedString(@"type-shortcut-prompt", @"First draft: Type a Keyboard Shortcut");
+    self.coolString = MFLocalizedString(@"type-shortcut-prompt", @"");
     self.textColor = NSColor.placeholderTextColor;
     
     [self selectAll:nil];
@@ -134,7 +134,7 @@
 
 - (BOOL)becomeFirstResponder {
     
-    DDLogDebug(@"BECOME FIRST RESPONDER");
+    DDLogDebug("BECOME FIRST RESPONDER");
     
     BOOL superAccepts = [super becomeFirstResponder];
     
@@ -163,7 +163,7 @@
             if (event.type == NSEventTypeFlagsChanged) {
                 CGEventFlags flags = CGEventGetFlags(e);
                 
-//                DDLogDebug(@"KeyCapureView: modifiers: %@", binarystring(flags));
+//                DDLogDebug("KeyCapureView: modifiers: %@", binarystring(flags));
                 
                 NSString *modString = [UIStrings getKeyboardModifierString:flags];
                 if (modString.length > 0) {
@@ -190,7 +190,7 @@
 }
 - (BOOL)resignFirstResponder {
 
-    DDLogDebug(@"RESIGN FIRST RESPONDER");
+    DDLogDebug("RESIGN FIRST RESPONDER");
     
     BOOL superResigns = [super resignFirstResponder];
 

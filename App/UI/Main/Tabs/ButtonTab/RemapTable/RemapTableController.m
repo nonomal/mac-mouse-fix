@@ -20,7 +20,7 @@
 #import "NSTextField+Additions.h"
 #import "UIStrings.h"
 #import "MFMessagePort.h"
-#import "CaptureNotificationCreator.h"
+#import "CaptureToasts.h"
 #import "RemapTableTranslator.h"
 #import "NSView+Additions.h"
 #import "KeyCaptureView.h"
@@ -66,7 +66,7 @@
 }
 - (void)writeDataModelToConfig {
     
-    DDLogDebug(@"TRM remap table store remaps"); /// Currently looks like this is never called? That can't be true.
+    DDLogDebug("TRM remap table store remaps"); /// Currently looks like this is never called? That can't be true.
     
     setConfig(kMFConfigKeyRemaps, self.dataModel);
     commitConfig();
@@ -212,7 +212,7 @@
     /// Validate
     
     if (clickedRow == -1) {
-        DDLogError(@"Couldn't find clickedRow in submenu item IBAction");
+        DDLogError("Couldn't find clickedRow in submenu item IBAction");
         return;
         /// TODO: Maybe handle this better? Crash the app so it doesn't corrupt data or sth?
     }
@@ -256,7 +256,7 @@
 - (void)viewDidLoad {
     /// Not getting called for some reason -> I had to set the view outlet of the controller object in IB to the tableView.
     
-    DDLogDebug(@"RemapTableView did load.");
+    DDLogDebug("RemapTableView did load.");
     
     /// Set rounded corners and appropriate border
     
@@ -411,7 +411,7 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
     /// Capture notifs
     ///     These are too long and obnoxious and not really helpful in this situation.
 //    NSSet *capturedButtonsAfter = [RemapTableUtility getCapturedButtons];
-//    [CaptureNotificationCreator showButtonCaptureNotificationWithBeforeSet:capturedButtonsBefore afterSet:capturedButtonsAfter];
+//    [CaptureToasts showButtonCaptureToastWithBeforeSet:capturedButtonsBefore afterSet:capturedButtonsAfter];
 }
 
 #pragma mark - Delegate & Controller
@@ -526,7 +526,7 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
     /// `rowToRemove` is relative to actual table / groupedDataModel. Not baseDataModel
     
     /// Capture notifs
-    NSSet<NSNumber *> *capturedButtonsBefore = [RemapTableUtility getCapturedButtons];
+    NSSet<NSNumber *> *capturedButtonsBefore = [RemapTableUtility getCapturedButtonsAndExcludeButtonsThatAreOnlyCapturedByModifier:NO];
     
     /// Get base data model index corresponding to selected table index
     NSUInteger dataModelRowToRemove = [RemapTableUtility baseDataModelIndexFromGroupedDataModelIndex:rowToRemove withGroupedDataModel:self.groupedDataModel];
@@ -562,8 +562,8 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
     [self.tableView removeRowsAtIndexes:rowsToRemoveWithAnimation withAnimation:/*NSTableViewAnimationEffectNone*/NSTableViewAnimationSlideUp];
     
     /// Capture notifs
-    NSSet *capturedButtonsAfter = [RemapTableUtility getCapturedButtons];
-    [CaptureNotificationCreator showButtonCaptureNotificationWithBeforeSet:capturedButtonsBefore afterSet:capturedButtonsAfter];
+    NSSet *capturedButtonsAfter = [RemapTableUtility getCapturedButtonsAndExcludeButtonsThatAreOnlyCapturedByModifier:NO];
+    [CaptureToasts showButtonCaptureToastWithBeforeSet:capturedButtonsBefore afterSet:capturedButtonsAfter];
 }
 
 - (void)addButtonAction {
@@ -575,7 +575,7 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
 - (void)addRowWithHelperPayload:(NSDictionary *)payload {
     
     /// Capture notifs
-    NSSet<NSNumber *> *capturedButtonsBefore = [RemapTableUtility getCapturedButtons];
+    NSSet<NSNumber *> *capturedButtonsBefore = [RemapTableUtility getCapturedButtonsAndExcludeButtonsThatAreOnlyCapturedByModifier:NO];
     
     /// Make tableView key, so it's not greyed out
     [self.tableView.window makeFirstResponder:self.tableView];
@@ -657,11 +657,12 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
     [popUpButton performSelector:@selector(performClick:) withObject:nil afterDelay:delay];
     
     /// Capture notifs
-    NSSet<NSNumber *> *capturedButtonsAfter =  [RemapTableUtility getCapturedButtons];
-    [CaptureNotificationCreator showButtonCaptureNotificationWithBeforeSet:capturedButtonsBefore afterSet:capturedButtonsAfter];
+    /// 
+    NSSet<NSNumber *> *capturedButtonsAfter = [RemapTableUtility getCapturedButtonsAndExcludeButtonsThatAreOnlyCapturedByModifier:NO];
+    [CaptureToasts showButtonCaptureToastWithBeforeSet:capturedButtonsBefore afterSet:capturedButtonsAfter];
     
 //    if ([capturedButtonsBefore isEqual:capturedButtonsAfter]) {
-        // If they aren't equal then `showButtonCaptureNotificationWithBeforeSet:` will show a notification
+        // If they aren't equal then `showButtonCaptureToastWithBeforeSet:` will show a notification
         //      This notification will not be interactable if we also open the popup button menu.
 //        [popUpButton performSelector:@selector(performClick:) withObject:nil afterDelay:0.2];
 //    }
@@ -692,7 +693,7 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
         MFMouseButtonNumber groupButtonNumber = [RemapTableUtility triggerButtonForRow:self.groupedDataModel[row+1]];
         NSTableCellView *buttonGroupCell = [self.tableView makeViewWithIdentifier:@"buttonGroupCell" owner:self];
         NSTextField *groupTextField = (NSTextField *)buttonGroupCell.nextKeyView;
-        groupTextField.stringValue = stringf(@"  %@", [UIStrings getButtonString:groupButtonNumber].firstCapitalized);
+        groupTextField.stringValue = stringf(@"  %@", [UIStrings getButtonString:groupButtonNumber context:kMFButtonStringUsageContextActionTableGroupRow].firstCapitalized);
         
         if (@available(macOS 11.0, *)) { } else {
             
@@ -745,46 +746,42 @@ static void updateBorderColor(RemapTableController *object, BOOL isInitialAppear
 
 - (CGFloat)tableView:(NSTableView *)tableView heightOfRow:(NSInteger)row {
     
+    /// Note: There is a HACK inside `ButtonTabController.swift` which calls `self.tableView.noteHeightOfRows()` to force this to be called at the right time. [Dec 2025]
+    
     /// Calculate trigger cell text height
     NSDictionary *rowDict = self.groupedDataModel[row];
+    rowDict = [SharedUtility deepCopyOf: rowDict]; /// Why are we deep-copying? Seems pointless. [Dec 2025]
     
-    /// Case 1 - group row
     if ([rowDict isEqual:RemapTableUtility.buttonGroupRowDict]) {
+        /// Case 1 - group row
+    
         NSTableCellView *buttonGroupCell = [self.tableView makeViewWithIdentifier:@"buttonGroupCell" owner:self];
         return buttonGroupCell.frame.size.height;
-    } else { /// Case 2 - normal row
-        /// \discussion Getting height has proven very difficult because there are errors in the methods for calculating textField size or attributedString size.
-        ///     An alternative to consider is to just force layout of the view and then measure that. (Like is done in the rewritten UI a lot.)
-        ///     03.08.2022 This is still broken. When entering `Button 4 + Click and Scroll Button 3` the end of the line is cut off.
-        ///     TODO: ^ Test method from [Utility_App actualTextViewWidth]
-        ///         ... But we're dealing with an NSTextField not an NSTextView?
-        ///     TODO: Implement auto row height!. That should fix all our worries. See https://developer.apple.com/forums/thread/126767.
+    } else {
         
-        rowDict = (NSDictionary *)[SharedUtility deepCopyOf:rowDict];
-        NSTableCellView *view = [RemapTableTranslator getTriggerCellWithRowDict:rowDict row:row];
-        /// ^ These lines are copied from `tableView:viewForTableColumn:row:`. Should change this cause copied code is bad. Edit: This doesn't seem to be true anymore. I can't see copied text.
-        NSTextField *textField = view.textField;
-        NSMutableAttributedString *string = textField.effectiveAttributedStringValue.mutableCopy;
+        /// Case 2 - normal row
         
-        CGFloat fieldWidth = textField.bounds.size.width; /// 326 for some reason, in IB it's 323
-//        CGFloat fieldWdth = [Utility_App actualTextFieldWidth:textField]; /// So far this doesn't seem to make a difference to just calling `.bounds.size.width`
-        CGFloat textHeight = [string heightAtWidth:fieldWidth];
+        /// Get width of the trigger column
+        ///     Relies on HACK: We need to call `tableView.noteHeightOfRows(withIndexesChanged:` inside `ButtonTabController.swift` to get the correct column width here. [Dec 2025]
+        CGFloat colwidth = self.tableView.tableColumns[0].width;
         
-        /// Get top and bottom margins around text from IB template
-        NSTableCellView *templateView = [self.tableView makeViewWithIdentifier:@"triggerCell" owner:nil];
-        NSTextField *templateTextField = templateView.subviews[0];
-        CGFloat templateViewHeight = templateView.bounds.size.height;
-        CGFloat templateTextFieldHeight = templateTextField.bounds.size.height;
-        double vMargin = templateViewHeight - templateTextFieldHeight;
+        CGFloat result;
+        {
+            /// Get the cellView for the trigger column (leftmost column) for this row.
+            ///     We cannot use `tableView:viewForTableColumn:row:` since it's 'not allowed' inside `tableView:heightOfRow:`, so we're creating a whole new view from scratch (kinda wasteful) [Dec 2025]
+            NSTableCellView *triggerCellView = [RemapTableTranslator getTriggerCellWithRowDict: rowDict row: row];
+            
+            /// Size the triggerCellView we just created to match the real triggerCellView in the table
+            [triggerCellView setFrameSize: (NSSize) { .width = colwidth, .height = triggerCellView.frame.size.height }];
+            [triggerCellView layoutSubtreeIfNeeded]; /// Note: This may be slow – We replaced more complex (possibly faster?) method of getting height in commit after b872ff8. [Dec 2025]
+            
+            /// Measure height
+            result = triggerCellView.frame.size.height;
         
-        /// Add margins and text height to get result
-        CGFloat result = textHeight + vMargin;
-        if (result == templateViewHeight) {
-            return result;
-        } else {
-            DDLogDebug(@"Height of row %ld is non-standard - Template: %f, Actual: %f", (long)row, templateViewHeight, result);
-            return result;
         }
+        
+        /// Return
+        return result;
     }
 }
 
@@ -860,7 +857,7 @@ static void getTriggerValues(int *btn1, int *lvl1, NSString **dur1, NSString **t
         NSArray *buttonSequence1 = preconds1[kMFModificationPreconditionKeyButtons];
         NSArray *buttonSequence2 = preconds2[kMFModificationPreconditionKeyButtons];
         uint64_t iterMax = MIN(buttonSequence1.count, buttonSequence2.count);
-        DDLogInfo(@"DEBUG - buttonSequence1: %@, buttonSequence2: %@, iterMax: %@", buttonSequence1, buttonSequence2, @(iterMax));
+        DDLogInfo("DEBUG - buttonSequence1: %@, buttonSequence2: %@, iterMax: %@", buttonSequence1, buttonSequence2, @(iterMax));
         
         /// ^ We sometimes get a "index 0 beyond bounds for empty array" error for the `buttonSequence1[i]` instruction. Seemingly at random.
         for (int i = 0; i < iterMax; i++) {

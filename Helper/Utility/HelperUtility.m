@@ -11,9 +11,9 @@
 #import "HelperUtility.h"
 #import "Constants.h"
 #import "ModificationUtility.h"
-#import "WannabePrefixHeader.h"
 #import "Locator.h"
 #import "SharedUtility.h"
+#import "Logging.h"
 
 @implementation HelperUtility
 
@@ -35,7 +35,7 @@
     const uint32_t maxDisplays = 1;
     uint32_t matchingDisplayCount; CGDirectDisplayID newDisplaysUnderMousePointer[maxDisplays];
     CGError err = CGGetDisplaysWithPoint(point, maxDisplays, newDisplaysUnderMousePointer, &matchingDisplayCount);
-    if (err != kCGErrorSuccess) DDLogWarn(@"Getting display with point (%@) failed with error: %d",  NSStringFromPoint(point), err);
+    if (err != kCGErrorSuccess) DDLogWarn("Getting display with point (%@) failed with error: %d",  NSStringFromPoint(point), err);
     
     if (matchingDisplayCount == 1) {
         /// Success
@@ -45,7 +45,7 @@
     }
     else if (matchingDisplayCount == 0) {
         /// Failure
-        DDLogWarn(@"There are 0 diplays under the mouse pointer");
+        DDLogWarn("There are 0 diplays under the mouse pointer");
         *dspID = kCGNullDirectDisplay;
         return kCVReturnError; /// Returning 'error' here is stupid. Just seting the result dspID to nil is enough.
     }
@@ -128,32 +128,14 @@ NSString *runningApplicationDescription(NSRunningApplication *app) {
 }
 
 + (void)printEventFieldDifferencesBetween:(CGEventRef)event1 and:(CGEventRef)event2 {
-    DDLogInfo(@"Field differences for event: %@, and event: %@", event1, event2);
+    DDLogInfo("Field differences for event: %@, and event: %@", event1, event2);
     for (int field = 0; field < 256; field++) { /// I think there are only 256 fields, that's what we seem to have assumed in macos-touch-reverse-engineering
         int64_t value1 = CGEventGetIntegerValueField(event1, field);
         int64_t value2 = CGEventGetIntegerValueField(event2, field);
         if (value1 != value2) {
-            DDLogInfo(@"%@: %@ vs %@", @(field), @(value1), @(value2));
+            DDLogInfo("%@: %@ vs %@", @(field), @(value1), @(value2));
         }
     }
-}
-
-+ (NSString *)binaryRepresentation:(int64_t)value {
-    
-    uint64_t one = 1; /// A literal 1 is apparently 32 bits, so we need to declare it here to make it 64 bits. Declaring as unsigned only to silence an error when shiftting this left by 63 places.
-    
-    int64_t nibbleCount = sizeof(value) * 2;
-    NSMutableString *bitString = [NSMutableString stringWithCapacity:nibbleCount * 5];
-    
-    for (int64_t index = 4 * nibbleCount - 1; index >= 0; index--)
-    {
-        [bitString appendFormat:@"%i", value & (one << index) ? 1 : 0];
-        if (index % 4 == 0)
-        {
-            [bitString appendString:@" "];
-        }
-    }
-    return bitString;
 }
 
 /// Get modifier flags

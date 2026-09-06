@@ -46,9 +46,6 @@ static NSMutableArray<Device *> *_attachedDevices;
 + (NSArray<Device *> *)attachedDevices {
     return _attachedDevices;
 }
-+ (id)__SWIFT_UNBRIDGED_attachedDevices {
-    return _attachedDevices;
-}
 
 static NSMutableDictionary<NSNumber *, Device *> *_iohidToAttachedCache;
 + (Device * _Nullable)attachedDeviceWithIOHIDDevice:(IOHIDDeviceRef)iohidDevice {
@@ -121,8 +118,8 @@ static NSMutableDictionary<NSNumber *, Device *> *_iohidToAttachedCache;
 //        retOpen = IOHIDManagerOpen(_HIDManager, kIOHIDOptionsTypeNone);
 //    }
 //    _devicesAreSeized = seize;
-//    DDLogInfo(@"Seize manager close return: %d", retClose);
-//    DDLogInfo(@"Seize manager open return: %d", retOpen);
+//    DDLogInfo("Seize manager close return: %d", retClose);
+//    DDLogInfo("Seize manager open return: %d", retOpen);
 //}
 
 #pragma mark - Device information
@@ -195,13 +192,13 @@ static void setupDeviceMatchingAndRemovalCallbacks() {
     /// Register the Matching Dictionary to the HID Manager
     IOHIDManagerSetDeviceMatchingMultiple(_manager, (__bridge CFArrayRef)matchArray);
     
-    /// Register the HID Manager on our app’s run loop
+    /// Register the HID Manager on our app's run loop
     IOHIDManagerScheduleWithRunLoop(_manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
     
     /// Open the HID Manager
 //    IOReturn IOReturn = IOHIDManagerOpen(_HIDManager, kIOHIDOptionsTypeNone);
 //    IOReturn IOReturn = IOHIDManagerOpen(_HIDManager, kIOHIDOptionsTypeSeizeDevice);
-//    if(IOReturn) DDLogInfo(@"IOHIDManagerOpen failed.");  //  Couldn't open the HID manager! TODO: proper error handling
+//    if(IOReturn) DDLogInfo("IOHIDManagerOpen failed.");  //  Couldn't open the HID manager! TODO: proper error handling
 
     /// Register a callback for USB device detection with the HID Manager, this will in turn register an button input callback for all devices that getFilteredDevicesFromManager() returns
     IOHIDManagerRegisterDeviceMatchingCallback(_manager, &handleDeviceMatching, NULL);
@@ -215,7 +212,7 @@ static void setupDeviceMatchingAndRemovalCallbacks() {
 
 static void handleDeviceMatching(void *context, IOReturn result, void *sender, IOHIDDeviceRef device) {
     
-    DDLogDebug(@"New matching IOHIDDevice: %@", device);
+    DDLogDebug("New matching IOHIDDevice: %@", device);
     
     if (devicePassesFiltering(device)) {
         
@@ -245,7 +242,7 @@ static void handleDeviceMatching(void *context, IOReturn result, void *sender, I
         
         /// Set pointer sensitivity and acceleration for device
         ///     Edit: Seems that parametric curves are always set under Ventura, so we can't use tableBased curves :/ And in its current form this code will always crash. See PointerSpeed for more details.
-    //    DDLogDebug(@"Setting PointerSpeed for device: %@", newDevice.description);
+    //    DDLogDebug("Setting PointerSpeed for device: %@", newDevice.description);
     //    [PointerSpeed setForDevice:newDevice.IOHIDDevice];
         
         ///
@@ -260,21 +257,21 @@ static void handleDeviceMatching(void *context, IOReturn result, void *sender, I
         PollingRateMeasurer *measurer = [[PollingRateMeasurer alloc] init];
         [measurerMap addObject:measurer];
         [measurer measureOnDevice:newDevice numberOfSamples:400 completionCallback:^(double period, NSInteger rate) {
-            DDLogDebug(@"Completed polling rate measurement! Period: %f ms, Rate: %ld Hz", period, rate);
+            DDLogDebug("Completed polling rate measurement! Period: %f ms, Rate: %ld Hz", period, rate);
         } progressCallback:^(double completion, double period, NSInteger rate) {
-            DDLogDebug(@"Polling rate measurement %d\%% completed. Current estimate: %ld", (int)(completion*100), (long)rate);
+            DDLogDebug("Polling rate measurement %d\%% completed. Current estimate: %ld", (int)(completion*100), (long)rate);
         }];
         
     #endif
         
         /// Log
-        DDLogInfo(@"New device added to attached devices:\n%@", newDevice);
+        DDLogInfo("New device added to attached devices:\n%@", newDevice);
         
     } else {
-        DDLogInfo(@"New matching IOHIDDevice device didn't pass filtering");
+        DDLogInfo("New matching IOHIDDevice device didn't pass filtering");
     }
     
-    DDLogDebug(@"%@", debugInfo());
+    DDLogDebug("%@", debugInfo());
     
     return;
     
@@ -286,7 +283,7 @@ static void handleDeviceRemoval(void *context, IOReturn result, void *sender, IO
     
     if (attachedDevice == nil) {
         
-        DDLogDebug(@"Device was removed but it wasn't attached to Mac Mouse Fix: %@", device);
+        DDLogDebug("Device was removed but it wasn't attached to Mac Mouse Fix: %@", device);
         
     } else {
         
@@ -309,8 +306,8 @@ static void handleDeviceRemoval(void *context, IOReturn result, void *sender, IO
         
         /// Log
         
-        DDLogInfo(@"Attached device was removed:\n%@", attachedDevice);
-        DDLogDebug(@"Device Manager state after removal %@", debugInfo());
+        DDLogInfo("Attached device was removed:\n%@", attachedDevice);
+        DDLogDebug("Device Manager state after removal %@", debugInfo());
     }
 }
 
@@ -318,6 +315,7 @@ static void handleDeviceRemoval(void *context, IOReturn result, void *sender, IO
 
 static BOOL devicePassesFiltering(IOHIDDeviceRef device) {
     /// Helper function for handleDeviceMatching()
+    ///     [May 2025] Perhaps we could specify this Product/VendorID-based filtering directly in the matching dict with the kIOPropertyMatchKey?  ... But there doesn't seem to be 'negative' matching.
     
     NSString *deviceName = (__bridge NSString *)IOHIDDeviceGetProperty(device, CFSTR("Product"));
     NSNumber *deviceVendorID = (__bridge NSNumber *)IOHIDDeviceGetProperty(device, CFSTR("VendorID"));
@@ -325,7 +323,7 @@ static BOOL devicePassesFiltering(IOHIDDeviceRef device) {
     if ([deviceName isEqualToString:@"Apple Internal Keyboard / Trackpad"]) { // TODO: Does it make sense? Does this work on other machines that are not mine? Shouldn't ignoring all Apple devices be enough?
         return NO;
     }
-    if (deviceVendorID.integerValue == 1452) { /// Apple's Vendor ID is 1452 (sometimes written as 0x5ac or 05ac)
+    if (deviceVendorID.integerValue == 1452) { /// Apple's Vendor ID is 1452 (sometimes written as 0x5ac or 05ac) || Update: [May 2025] My Magic Mouse has a VendorID of 76.
         return NO;
     }
     return YES;

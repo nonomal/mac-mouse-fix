@@ -10,13 +10,14 @@
 #import "Hyperlink.h"
 #import "Utility_App.h"
 #import "AppDelegate.h"
-#import "WannabePrefixHeader.h"
 #import "SharedUtility.h"
+#import "Logging.h"
 
 IB_DESIGNABLE
 @interface Hyperlink ()
 
-@property (nonatomic) IBInspectable NSString *href;
+@property (nonatomic) IBInspectable NSString *MFLinkID;     /// This is actually an `MFLinkID`, but IBInspectable only works when set the type to literally `NSString *`
+@property (nonatomic) NSString *href;                       /// Unused. Moved to using linkIDs instead.
 
 /// TrackingArea padding
 ///     Extends the area that can be clicked to open the link beyond the frame of the link text.
@@ -51,14 +52,21 @@ IB_DESIGNABLE
     return self;
 }
 
-+ (instancetype)hyperlinkWithTitle:(NSString *)title url:(NSString *)href alwaysTracking:(BOOL)alwaysTracking leftPadding:(int)leftPadding {
+- (void)awakeFromNib {
+    
+    /// Validate
+    ///     Do this in awakeFromNib since the IB values aren't set yet inside initWithCoder:
+    assert(_href == nil || _href.length == 0); /// We moved over to using `_MFLinkID`  instead.
+}
+
++ (instancetype)hyperlinkWithTitle:(NSString *)title linkID:(MFLinkID)linkID alwaysTracking:(BOOL)alwaysTracking leftPadding:(int)leftPadding {
     
     /// Init from code
     
     Hyperlink *link = [Hyperlink labelWithString:title];
     link.textColor = [NSColor linkColor];
     link.font = [NSFont systemFontOfSize:NSFont.systemFontSize];
-    link.href = href;
+    link.MFLinkID = linkID;
     link.leftPadding = leftPadding;
     
     link->_alwaysTracking = alwaysTracking;
@@ -106,8 +114,8 @@ IB_DESIGNABLE
 
 - (void)updateTrackingAreas {
     
-    DDLogDebug(@"Hyperlink updateTrackingAreas");
-//    DDLogDebug(@"Hyperlink updateTrackingAreas caller: %@", SharedUtility.callerInfo);
+    DDLogDebug("Hyperlink updateTrackingAreas");
+//    DDLogDebug("Hyperlink updateTrackingAreas caller: %@", SharedUtility.callerInfo);
     
     [super updateTrackingAreas];
     
@@ -124,6 +132,9 @@ IB_DESIGNABLE
     /// Setup new tracking area
     
     /// Options
+    /// Notes:
+    /// - Is NSTrackingEnabledDuringMouseDrag really necessary? I just read a bit of docs and it seems unnecessary
+    /// - Why not use the NSTrackingInVisibleRect option instead of specifying the `_trackingRect` manually? Edit: It's because we make the `_trackingArea` larger than the view. See below.
     
     NSTrackingAreaOptions trackingAreaOptions =  NSTrackingMouseEnteredAndExited | NSTrackingEnabledDuringMouseDrag;
     trackingAreaOptions |= _alwaysTracking ? NSTrackingActiveAlways : NSTrackingActiveInKeyWindow;
@@ -152,7 +163,7 @@ IB_DESIGNABLE
 
 - (void)mouseEntered:(NSEvent *)event {
     
-    DDLogDebug(@"Hyperlink enter");
+    DDLogDebug("Hyperlink enter");
     
     _mouseIsOverSelf = YES;
     
@@ -165,7 +176,7 @@ IB_DESIGNABLE
 }
 - (void)mouseExited:(NSEvent *)event {
     
-    DDLogDebug(@"Hyperlink exit");
+    DDLogDebug("Hyperlink exit");
     
     _mouseIsOverSelf = NO;
     
@@ -179,7 +190,7 @@ IB_DESIGNABLE
 }
 - (void)mouseDown:(NSEvent *)event {
     
-    DDLogDebug(@"Hyperlink mouseDown");
+    DDLogDebug("Hyperlink mouseDown");
     
     if (_mouseIsOverSelf) {
         _mouseDownOverSelf = YES;
@@ -187,7 +198,7 @@ IB_DESIGNABLE
 }
 - (void)mouseUp:(NSEvent *)event {
     
-    DDLogDebug(@"Hyperlink mouseUp");
+    DDLogDebug("Hyperlink mouseUp");
     
     if (_mouseDownOverSelf && _mouseIsOverSelf) {
         [self reactToClick];
@@ -197,11 +208,12 @@ IB_DESIGNABLE
 }
 - (void)reactToClick {
     
-    DDLogDebug(@"Hyperlink acceptClick");
+    DDLogDebug("Hyperlink acceptClick");
     
     /// Get info
     BOOL hasAction = self.action != nil;
-    BOOL hasLink = _href != nil && ![_href isEqual:@""];
+    NSString *link = [Links link:_MFLinkID]; /// We could cache this for performance.
+    BOOL hasLink = link != nil && link.length > 0;
     
     /// Validate
     assert(hasAction || hasLink);
@@ -211,7 +223,7 @@ IB_DESIGNABLE
     if (hasAction) {
         [self sendAction:self.action to:self.target];
     } else {
-        [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:_href]];
+        [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:link]];
     }
 }
 

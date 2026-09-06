@@ -18,6 +18,7 @@
 #import "SharedUtility.h"
 #import "Constants.h"
 #import <Cocoa/Cocoa.h>
+#import "Logging.h"
 
 @implementation AppTranslocationManager
 
@@ -31,7 +32,7 @@ void *getFunctionFromSecurityFramework(const char *functionName) {
     
     /// TODO:
     ///     Remove this. Just use `extern` for linking undocumented symbols.
-    ///     - Based on what we learned when implementing `EventLoggerForBrad > PrivateFunctions.m`, dlsym() should almost never be necessary.
+    ///     - Based on what we learned when implementing `PrivateFunctions.m`, dlsym() should almost never be necessary.
     
     /// Open security framework
     void *handle = NULL;
@@ -44,7 +45,7 @@ bool getIsTranslocated(void) {
     
     bool isTranslocated = false;
     
-    /// Declare function for ‘SecTranslocateIsTranslocatedURL’
+    /// Declare function for 'SecTranslocateIsTranslocatedURL'
     Boolean (*mySecTranslocateIsTranslocatedURL)(CFURLRef path, bool *isTranslocated, CFErrorRef * __nullable error); // Flag for API request
     
     /// Get function from security framework
@@ -55,7 +56,7 @@ bool getIsTranslocated(void) {
     mySecTranslocateIsTranslocatedURL(getAppURL(), &isTranslocated, &err);
     NSError *error = (__bridge NSError *)err;
     if (error != nil) {
-        DDLogInfo(@"Error checking if app is translocated: %@", err);
+        DDLogInfo("Error checking if app is translocated: %@", err);
     }
     
     return isTranslocated;
@@ -67,7 +68,7 @@ NSURL *getUntranslocatedURL(void) {
     
     /// Get current application path
     
-    /// Declare function for ‘SecTranslocateCreateOriginalPathForURL’
+    /// Declare function for 'SecTranslocateCreateOriginalPathForURL'
     CFURLRef __nullable (*mySecTranslocateCreateOriginalPathForURL)(CFURLRef translocatedPath, CFErrorRef * __nullable error);
     
     /// Get function from security framework
@@ -78,7 +79,7 @@ NSURL *getUntranslocatedURL(void) {
     untranslocatedURL = (__bridge NSURL*)mySecTranslocateCreateOriginalPathForURL(getAppURL(), &err);
     if (err != NULL) {
         NSError *error = (__bridge NSError *)err;
-        DDLogInfo(@"Error getting untranslocated URL: %@", error);
+        DDLogInfo("Error getting untranslocated URL: %@", error);
     }
     
     return untranslocatedURL;
@@ -97,22 +98,22 @@ void removeQuarantineFlagAndRestart(NSURL* untranslocatedURL) {
     [SharedUtility launchCLT:xattrURL withArguments:@[@"-cr", untranslocatedURL.path] error:&error];
     
     if (error != nil) {
-        DDLogInfo(@"Error while removing quarantine: %@", error);
+        DDLogInfo("Error while removing quarantine: %@", error);
         return;
     }
     
     /// Relaunch app at original (untranslocated) location
-    ///  -> Use ‘open’ as it allows two instances of app (this instance is exiting)
+    ///  -> Use 'open' as it allows two instances of app (this instance is exiting)
     [SharedUtility launchCLT:openURL withArguments:@[@"-n", @"-a", untranslocatedURL.path] error:&error];
     /// ^ This successfully relaunches the app but AccessibilityOverlay doesn't work on the relaunched instance. I assume it's sth to do with message ports. Yes that turned out to be it. Using `initialize` instead of `load` to make the message port be created after this is executed fixed it.
     /// ^ We need to make sure not to use MessagePort_App from within any `load` methods, as that would lead to MessagePort_App being initialized before this is called, leading to the same issue. (This is currently being called from [AppDelegate + initialize])
     
     if (error != nil) {
-        DDLogInfo(@"Error while relaunching app: %@", error);
+        DDLogInfo("Error while relaunching app: %@", error);
         return;
     }
     
-    DDLogInfo(@"Terminating translocated instance of the app");
+    DDLogInfo("Terminating translocated instance of the app");
     
     [NSApplication.sharedApplication terminate:nil];
 }
@@ -123,11 +124,11 @@ void removeQuarantineFlagAndRestart(NSURL* untranslocatedURL) {
     
     bool translocated = getIsTranslocated();
     
-    DDLogInfo(@"Mac Mouse Fix is translocated: %d", translocated);
+    DDLogInfo("Mac Mouse Fix is translocated: %d", translocated);
     
     if (translocated) {
         NSURL *originalURL = getUntranslocatedURL();
-        DDLogInfo(@"Untranslocated URL: %@", originalURL);
+        DDLogInfo("Untranslocated URL: %@", originalURL);
         removeQuarantineFlagAndRestart(originalURL);
     }
     

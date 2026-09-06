@@ -17,6 +17,7 @@
 #import "SubPixelator.h"
 #import "SharedUtility.h"
 #import "MathObjc.h"
+#import "Logging.h"
 
 @interface SubPixelator ()
 @property (readwrite, assign, atomic) double accumulatedRoundingError;
@@ -72,9 +73,9 @@
 }
 
 static RoundingFunction getBiasedRoundingFunction(double inpDelta) {
-    if (sign(inpDelta) == 1) {
+    if (mfsign(inpDelta) == 1) {
         return ceil;
-    } else if (sign(inpDelta) == -1) {
+    } else if (mfsign(inpDelta) == -1) {
         return floor;
     } else { /* sign == 0 */
         return NULL;
@@ -126,7 +127,7 @@ static RoundingFunction getBiasedRoundingFunction(double inpDelta) {
     }
     
     ///  Debug
-    DDLogDebug(@"\nSubpixelator eval with d: %f, oldErr: %f, roundedD: %f, newErr: %f", inpDelta, self.accumulatedRoundingError, outputDelta, preciseDelta - outputDelta);
+    DDLogDebug("Subpixelator eval with d: %f, oldErr: %f, roundedD: %f, newErr: %f", inpDelta, self.accumulatedRoundingError, outputDelta, preciseDelta - outputDelta);
     
     /// Update roundingError
     self.accumulatedRoundingError = preciseDelta - outputDelta;
@@ -168,7 +169,7 @@ static RoundingFunction getBiasedRoundingFunction(double inpDelta) {
     }
     
     ///  Debug
-    DDLogDebug(@"\nSubpixelator PEEK with d: %f, oldErr: %f, roundedD: %f", inpDelta, self.accumulatedRoundingError, outputDelta);
+    DDLogDebug("Subpixelator PEEK with d: %f, oldErr: %f, roundedD: %f", inpDelta, self.accumulatedRoundingError, outputDelta);
     
     /// Return
     return outputDelta;

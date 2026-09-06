@@ -26,14 +26,14 @@
         DisplayLinkCallbackTimeInfo timeInfo = parseTimeStamps(inNow, inOutputTime);
         
         /// Debug
-        DDLogDebug(@"DisplayLink.m: (%@) Callback", [self identifier]);
+        DDLogDebug("DisplayLink.m: (%@) Callback", [self identifier]);
         
         /// Define workload
         __auto_type workload = ^void (DisplayLinkCallbackTimeInfo timeInfo) {
             
             /// Check requestedState
             if (self->_requestedState == kMFDisplayLinkRequestedStateStopped) {
-                DDLogDebug(@"DisplayLink.m: (%@) callback called after requested stop. Returning", [self identifier]);
+                DDLogDebug("DisplayLink.m: (%@) callback called after requested stop. Returning", [self identifier]);
                 return;
             }
             
@@ -137,7 +137,8 @@
             ///         -> I think for now, **it's best to go back to the original scheduling**, since I'm confident that it's good on Firefox, and I'm not confident in the benefits of the 2 other schedulings we tried.
             ///             - See this comment for further discussion of this decisin: https://github.com/noah-nuebling/mac-mouse-fix/issues/875#issuecomment-2016869451
             ///         -> Maybe later, we can explore trying to analyze the CVDisplayLinkThread of the scrolled app in order to improve scheduling. That's the best idea I have right now. See https://github.com/noah-nuebling/mac-mouse-fix/issues/875#issuecomment-1986811798 for more info and potential libraries we could use to achieve this.
-
+            /// 
+            /// Update: [May 2025] The difference between scrolling smoothness between MMF and Trackpad momentum scrolling is mostly likely down to HIDEvents and so it should be possible to fix it inside GestureScrollSimulator.m! See that for more info.
             
             /// Get timestamp for start of callback
             CFTimeInterval startTs = CACurrentMediaTime();
@@ -155,7 +156,7 @@
                 workload = ^(DisplayLinkCallbackTimeInfo timeInfo){
                     
                     /// Debug
-                    DDLogDebug(@"DisplayLink.m: (%@) Callback workload", [self identifier]);
+                    DDLogDebug("DisplayLink.m: (%@) Callback workload", [self identifier]);
                     startTsSync = CACurrentMediaTime();
                     
                     /// Do work
@@ -181,7 +182,7 @@
                     }
                     
                     /// Print
-                    DDLogDebug(@"DisplayLink.m: (%@) callback workload times - last %f, now %f, now2 %f, next %f, send %f\n|| overallProcessing %f, workProcessing %f, workPeriod %f, nextFrameToWorkCompletion %f\n||vblTime: %f, vblDelta: %f, vblCount: %llu",
+                    DDLogDebug("DisplayLink.m: (%@) callback workload times - last %f, now %f, now2 %f, next %f, send %f\n|| overallProcessing %f, workProcessing %f, workPeriod %f, nextFrameToWorkCompletion %f\n||vblTime: %f, vblDelta: %f, vblCount: %llu",
                                [self identifier],
                                (timeInfo.lastFrame - rts) * 1000,
                                (timeInfo.cvCallbackTime - rts) * 1000,
@@ -291,7 +292,7 @@
                     workload(timeInfo);
                 });
             } else {
-                DDLogError(@"DisplayLink.m: (%@) Don't use special scheduling without extensive testing. This caused regressions in scrolling stutteriness in some scenarios and even crashes I think (See 3.0.2-vcoba stuff: https://github.com/noah-nuebling/mac-mouse-fix/issues/875, and 3.0.2 crashes: https://github.com/noah-nuebling/mac-mouse-fix/issues/988)", [self identifier]);
+                DDLogError("DisplayLink.m: (%@) Don't use special scheduling without extensive testing. This caused regressions in scrolling stutteriness in some scenarios and even crashes I think (See 3.0.2-vcoba stuff: https://github.com/noah-nuebling/mac-mouse-fix/issues/875, and 3.0.2 crashes: https://github.com/noah-nuebling/mac-mouse-fix/issues/988)", [self identifier]);
                 assert(false);
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC*workDelay), self->_displayLinkQueue, ^{ /// Schedule the workload to run after `workDelay`
                     workload(timeInfo);
@@ -393,7 +394,7 @@
                 assert(size == sizeof(StdFBShmem_t));
                 
                 AbsoluteTime vsyncTime = _currentDisplayFrameBufferSharedMemory->vblTime;
-                DDLogDebug(@"DisplayLink.m: Created framebuffer for new display with vsyncTime: vsyncTime: %u, %u", vsyncTime.hi, vsyncTime.lo);
+                DDLogDebug("DisplayLink.m: Created framebuffer for new display with vsyncTime: vsyncTime: %u, %u", vsyncTime.hi, vsyncTime.lo);
                 
             } else {
                 assert(false);

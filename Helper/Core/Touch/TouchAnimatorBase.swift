@@ -10,7 +10,6 @@
 /// Don't use this directly. Use the subclass `TouchAnimator` For discussion see `TouchAnimator`.
 
 import Foundation
-import CocoaLumberjackSwift
 import CoreVideo
 import QuartzCore
 
@@ -467,7 +466,7 @@ import QuartzCore
             DDLogDebug("inside-animator - start \(isFirstDisplayLinkCallback_AfterRunningStart ? "(running)" : "(cold)")")
         }
         
-        DDLogDebug("\nAnimation value total: (\(animationValueTotal.x), \(animationValueTotal.y)), left: (\(animationValueLeft_Unsafe.x), \(animationValueLeft_Unsafe.y))")
+        DDLogDebug("Animation value total: (\(animationValueTotal.x), \(animationValueTotal.y)), left: (\(animationValueLeft_Unsafe.x), \(animationValueLeft_Unsafe.y))")
         
         DDLogDebug("HNGG AnimationCallback with state - isFirstCold: \(isFirstDisplayLinkCallback_AfterColdStart), isFirstRunning: \(isFirstDisplayLinkCallback_AfterRunningStart)")
         

@@ -9,11 +9,14 @@
 
 #import "MFDataClass.h"
 @import ObjectiveC.runtime;
+
 #import "MFPlistDecoder.h"
-#import "EventLoggerForBradMacros.h"
 #import "NSCoderErrors.h"
 #import "MFCoding.h"
 #import "TreeNode.h"
+#import "MFDefer.h"
+
+#import "Logging.h"
 
 #import "NSCharacterSet+Additions.h"
 
@@ -392,7 +395,7 @@
             if (runningPreRelease()) { /// Disabling all custom NSNumber validation in release builds, cause I feel like the chance of causing problems due to false negatives in the validation is greater than the chance of us preventing issues. –– Just let KVC do its thing. See "On over-validation" above.
                 
                 #define debug_failWithError(code_, messageAndFormatArgs...) ({                  /** Drop-in replacement for failWithError for this code section which only runs in debug/prerelease mode..*/ \
-                    DDLogError(@"Decode failed with code: " #code_ ". Message: " messageAndFormatArgs); \
+                    DDLogError("Decode failed with code: " #code_ ". Message: " messageAndFormatArgs); \
                     exit(1);                                                                    \
                 })
                 
@@ -420,7 +423,7 @@
                         double dbl = [decodedNum doubleValue];
                         if (floor(dbl) != dbl) {
                             assert(false);
-                            debug_failWithError(NSCoderReadCorruptError, @"Decoded non-whole number %f for property %@.%@ with whole-number type %s", dbl, [self class], key, propertyTypeEncoding);
+                            debug_failWithError(NSCoderReadCorruptError, "Decoded non-whole number %f for property %@.%@ with whole-number type %s", dbl, [self class], key, propertyTypeEncoding);
                         }
                     }
                     
@@ -429,7 +432,7 @@
                         #define xxx(n, fmt, lo, hi) ({                  \
                             if (!( (lo) <= (n) && (n) <= (hi) )) {      \
                                 assert(false);                          \
-                                debug_failWithError(NSCoderReadCorruptError, @"Decoded number " fmt " does not fit into property %@.%@ of type %s", n, [self class], key, propertyTypeEncoding);   \
+                                debug_failWithError(NSCoderReadCorruptError, "Decoded number " fmt " does not fit into property %@.%@ of type %s", n, [self class], key, propertyTypeEncoding);   \
                             }                                           \
                         })
                         
@@ -450,7 +453,7 @@
                                 xxx(n, "%lld", 0, 1);
                             }
                             else if (propIsUnsigned) {
-                                if ([decodedNum doubleValue] < 0) debug_failWithError(NSCoderReadCorruptError, @"Decoded number %@ is negative but property %@.%@ is unsigned", decodedNum, [self class], key); /// [Jun 2025] Unsure about this validation. NSNumber might not preserve signedness.
+                                if ([decodedNum doubleValue] < 0) debug_failWithError(NSCoderReadCorruptError, "Decoded number %@ is negative but property %@.%@ is unsigned", decodedNum, [self class], key); /// [Jun 2025] Unsure about this validation. NSNumber might not preserve signedness.
                                 unsigned long long n = [decodedNum unsignedLongLongValue];
                                 if      (propSize == 1)  xxx(n, "%llu", 0, UINT8_MAX);
                                 else if (propSize == 2)  xxx(n, "%llu", 0, UINT16_MAX);
@@ -472,9 +475,9 @@
                         /// Validate float precision loss / overflow / weirdness
                         if (propIsDecimal) {
                             double n = [decodedNum doubleValue];
-                            if (isnan(n))           debug_failWithError(NSCoderReadCorruptError, @"Decoded value for property %@.%@ is nan", [self class], key);
-                            if (isinf(n))           debug_failWithError(NSCoderReadCorruptError, @"Decoded value for property %@.%@ is inf", [self class], key);
-                            if      (propSize == 4) { if (((float)n) != n) debug_failWithError(NSCoderReadCorruptError, @"Decoded number %f cannot be represented by property %@.%@ of type float", n, [self class], key); }
+                            if (isnan(n))           debug_failWithError(NSCoderReadCorruptError, "Decoded value for property %@.%@ is nan", [self class], key);
+                            if (isinf(n))           debug_failWithError(NSCoderReadCorruptError, "Decoded value for property %@.%@ is inf", [self class], key);
+                            if      (propSize == 4) { if (((float)n) != n) debug_failWithError(NSCoderReadCorruptError, "Decoded number %f cannot be represented by property %@.%@ of type float", n, [self class], key); }
                             else if (propSize == 8) {}
                             else assert(false);
                         }
@@ -594,7 +597,7 @@
     
         /// Check for circular refs
         ///     This prevents infinite loops if there are circular references in the datastructure. But [NSDictionary -description] seems to just infinite-loop in this case... Maybe this was overkill.
-        NSMutableArray *visitedObjects = threadobject([[NSMutableArray alloc] init]);
+        NSMutableArray *const visitedObjects = threadobject([[NSMutableArray alloc] init]);
         NSNumber *s = @((uintptr_t)self); /// We cast self to an NSNumber so that we effectively do pointer-based equality checking instead of using the full `-isEqual` implementation.
         BOOL didFindCircularRef = [visitedObjects containsObject: s];
         [visitedObjects addObject: s];
@@ -652,6 +655,7 @@
     ///     This is used by almost all other methods - We could maybe do some caching here to speed things up
     ///     But don't forget: If we do a naive cache and just return the same NSArray every time, then this will break if properties are added at runtime.
     ///     (Update: [Feb 2025] I'm pretty sure we never ever wanna add properties at runtime to an MFDataClass. Perhaps we would use `objc_setAssociatedObject()` to do something similar.)
+    ///     (Update: [Apr 2025] If we wanted to really overengineer this, we could see how the objc runtime handles method lookup caching. It must have some mechanism to reset the cache when the instance changes at runtime, which we could possibly tap into (**Dont do this, this is overkill**))
     
     /// Create cache
     NSCache *cache = staticobject([[NSCache alloc] init]);
@@ -1084,11 +1088,11 @@ TreeNode<Class> *_Nonnull extractClassesFromRawTypeString(NSString *_Nonnull raw
                 else if (chars[j] == '>')  bracketBalance--;
                 
                 else if (chars[j] == ',' && bracketBalance == 1) {
-                    [specializations addObject: [rawTypeString substringWithRange: rangefromto(i+1, j-1)]];
+                    [specializations addObject: [rawTypeString substringWithRange: makerange_fromto(i+1, j-1)]];
                     i = j;
                 }
                 if (bracketBalance <= 0) {
-                    [specializations addObject: [rawTypeString substringWithRange: rangefromto(i+1, j-1)]];
+                    [specializations addObject: [rawTypeString substringWithRange: makerange_fromto(i+1, j-1)]];
                     break;
                 }
             }

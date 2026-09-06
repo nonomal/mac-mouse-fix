@@ -11,7 +11,6 @@
 /// This has the purpose of decelerating animations naturally, while still retaining complete control over the start of the animation.
 
 import Cocoa
-import CocoaLumberjackSwift
 
 // MARK: - BezierHybrid
 
@@ -202,7 +201,7 @@ import CocoaLumberjackSwift
         let transitionDistance = baseCurve.sampleCurve(onAxis: Bezier.yAxis, atT: transitionPoint) * targetDistance
         
         /// Debug
-        DDLogDebug("\ntransition time: \(transitionTime*1000), dist: \(transitionDistance), dragTime: \((dragCurve?.timeInterval.length ?? 0)*1000)")
+        DDLogDebug("transition time: \(transitionTime*1000), dist: \(transitionDistance), dragTime: \((dragCurve?.timeInterval.length ?? 0)*1000)")
         
         /// Return
         return (transitionTime: transitionTime, transitionDistance: transitionDistance, dragCurve: dragCurve)

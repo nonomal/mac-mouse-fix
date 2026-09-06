@@ -10,11 +10,10 @@
 /// [Aug 2025] Optimization:
 ///     - We optimized this for MMF 3.0.5 by overriding sendEvent()
 ///     - Quote from https://medium.com/@avaidyam/the-secret-life-of-core-animation-e0966f942a71:
-///         "However, if you’re creating a CGSWindow, the fast way to get a CALayer on-screen is to create a CGSSurfaceand bind a CAView to it. The header for CAView is incomplete, but it looks trivial to work with, as it then manages the surface for you."
+///         "However, if you're creating a CGSWindow, the fast way to get a CALayer on-screen is to create a CGSSurfaceand bind a CAView to it. The header for CAView is incomplete, but it looks trivial to work with, as it then manages the surface for you."
 ///         ... I'm not totally sure what this means, but maybe we could optimize by cutting out the NSView/NSWindow and go lower level?
 
 import Cocoa
-import CocoaLumberjackSwift
 
 @objc class ScreenDrawer: NSObject {
     /// This class can display graphics anywhere on the screen

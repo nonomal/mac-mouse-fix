@@ -1,15 +1,6 @@
 {
-  "originHash" : "9255ebc6515b65feb170caa7f31f32614690370281408397e6accb568cfb486e",
+  "originHash" : "b781a97bc415122e08e2fbc59ed4e0f6031088cf28f5ef43bed41e3dfa7dd6ba",
   "pins" : [
-    {
-      "identity" : "cocoalumberjack",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/CocoaLumberjack/CocoaLumberjack.git",
-      "state" : {
-        "revision" : "4b8714a7fb84d42393314ce897127b3939885ec3",
-        "version" : "3.8.5"
-      }
-    },
     {
       "identity" : "reactivecocoa",
       "kind" : "remoteSourceControl",
@@ -26,33 +17,6 @@
       "state" : {
         "revision" : "40c465af19b993344e84355c00669ba2022ca3cd",
         "version" : "7.1.1"
-      }
-    },
-    {
-      "identity" : "swift-cmark",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swiftlang/swift-cmark.git",
-      "state" : {
-        "branch" : "gfm",
-        "revision" : "b022b08312decdc46585e0b3440d97f6f22ef703"
-      }
-    },
-    {
-      "identity" : "swift-log",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-log",
-      "state" : {
-        "revision" : "9cb486020ebf03bfa5b5df985387a14a98744537",
-        "version" : "1.6.1"
-      }
-    },
-    {
-      "identity" : "swift-markdown",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-markdown",
-      "state" : {
-        "branch" : "main",
-        "revision" : "2829eefc2e4f8ee7270b8e8d3e5757b98fe06b6c"
       }
     }
   ],
